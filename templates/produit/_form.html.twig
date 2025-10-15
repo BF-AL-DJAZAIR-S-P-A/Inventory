@@ -1,0 +1,93 @@
+{{ form_start(form) }}
+
+<div class="container text-left">
+
+    <!-- 🧩 Ligne 1 : Nom + Catégorie -->
+    <div class="row">
+        <div class="col mb-3">
+            {{ form_label(form.nom, "Nom") }}
+            {{ form_row(form.nom, {'attr': {'class': 'form-control'}}) }}
+        </div>
+        <div class="col mb-3">
+            {{ form_label(form.reference, "Référnce") }}
+            {{ form_row(form.reference, {'attr': {'class': 'form-control'}}) }}
+        </div>
+        <div class="col mb-3">
+            {{ form_label(form.categorie, "Catégorie") }}
+            {{ form_row(form.categorie, {'attr': {'class': 'form-select'}}) }}
+        </div>
+    </div>
+
+    <!-- 🧩 Ligne 2 : Description -->
+    <div class="row">
+        <div class="mb-3">
+            {{ form_label(form.description, "Description") }}
+            {{ form_row(form.description, {'attr': {'class': 'form-control'}}) }}
+        </div>
+    </div>
+
+    <!-- 🧩 Ligne 3 : Code article + Code-barre -->
+    <div class="row">
+        <div class="col mb-3">
+            {{ form_label(form.codeArticle, "Code Article") }}
+            {{ form_row(form.codeArticle, {
+                'attr': {
+                    'class': 'form-control',
+                    'readonly': 'readonly'
+                }
+            }) }}
+
+         
+        </div>
+
+        <div class="col mb-3">
+            {{ form_label(form.codeBarre, "Code Barre (à saisir)") }}
+            {{ form_row(form.codeBarre, {'attr': {'class': 'form-control'}}) }}
+        </div>
+    </div>
+
+    <!-- 🧩 Ligne 4 : Unité + Poids -->
+    <div class="row">
+        <div class="col">
+            {{ form_label(form.unite, "Unité") }}
+            {{ form_row(form.unite, {'attr': {'class': 'form-select'}}) }}
+        </div>
+
+        <div class="col">
+            {{ form_label(form.poids, "Poids") }}
+            {{ form_row(form.poids, {'attr': {'class': 'form-control'}}) }}
+        </div>
+    </div>
+
+    <button class="btn btn-primary mt-3">
+        {{ button_label|default('Enregistrer') }}
+    </button>
+
+</div>
+
+{{ form_end(form) }}
+
+<!-- 🧠 Script : Génération du code article -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const categorieSelect = document.getElementById("{{ form.categorie.vars.id }}");
+    const codeArticleInput = document.getElementById("{{ form.codeArticle.vars.id }}");
+
+    function genererCodeArticle() {
+        const categorieId = categorieSelect.value;
+        if (!categorieId) return;
+
+        fetch(`/produit/generer-code/${categorieId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.code || data.codeArticle) {
+                    codeArticleInput.value = data.codeArticle ?? data.code;
+                }
+            })
+            .catch(error => console.error("Erreur AJAX :", error));
+    }
+
+    // Auto-génération quand la catégorie change
+    categorieSelect.addEventListener("change", genererCodeArticle);
+});
+</script>

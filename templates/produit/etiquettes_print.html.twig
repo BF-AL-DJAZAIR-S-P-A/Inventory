@@ -1,0 +1,61 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Etiquette Print{% endblock %}
+
+{% block body %}
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+    }
+    .page {
+        width: 210mm;   /* A4 */
+        height: 297mm;  /* A4 */
+        page-break-after: always;
+        position: relative;
+    }
+    .etiquette {
+        width: 64.3mm;
+        height: 70.5mm;
+        border: 1px dashed #ccc;
+        float: left;
+        text-align: center;
+        margin: 0;
+        padding: 2mm;
+        box-sizing: border-box;
+    }
+    .etiquette img {
+        max-width: 100%;
+        height: auto;
+    }
+    .etiquette p {
+        margin: 2px 0 0;
+        font-size: 12px;
+    }
+    .clearfix { clear: both; }
+</style>
+
+{% set compteur = 0 %}
+<div class="page">
+    {% for item in produits %}
+        {% for i in 1..item.quantite %}
+            <div class="etiquette">
+                <img src="{{ path('produit_barcode', {id: item.produit.id}) }}" alt="Code-barres">
+                
+            </div>
+
+            {% set compteur = compteur + 1 %}
+
+            {# Nouvelle ligne après 3 étiquettes #}
+            {% if compteur % 3 == 0 %}<div class="clearfix"></div>{% endif %}
+
+            {# Nouvelle page après 12 étiquettes #}
+            {% if compteur % 12 == 0 %}
+                </div>
+                <div class="page">
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+</div>
+{% endblock %}

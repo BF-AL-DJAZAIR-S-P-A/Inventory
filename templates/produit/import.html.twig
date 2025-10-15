@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Importer Produits{% endblock %}
+
+{% block body %}
+<style>
+.alert-info {
+    background-color: #d9edf7;
+    border-color: #bce8f1;
+    color: #3a87ad;
+}
+.help-block {
+    font-size: .9em;
+}
+.help-block {
+    display: block;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    color: #737373;
+}
+@media (min-width: 768px) {
+    .col-sm-12 {
+        width: 100%;
+    }
+}
+</style>
+
+  {{ form_start(form) }}
+<div class="container">
+<div class="content pt-5">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+<h1>Importer Produits depuis Excel</h1>
+
+</div>
+<br><br>
+<div class="row mb-3">
+    <div class="col-md-4">
+        {{ form_row(form.fichier) }}
+
+        <div class="help-block ">Les données peuvent être dans des fichiers tels que: XLSX</div>
+       
+           
+
+        {% for message in app.flashes('success') %}
+            <div class="alert alert-success">{{ message }}</div>
+        {% endfor %}
+    </div>
+    <div class="col-md-6 offset-md-2">
+    <div class="alert alert-info ">
+       
+        <i class="fas fa-lightbulb " style="float: right; margin-left: 8px;font-size: 27px;color: #4993c6;"></i>
+        <a target="_blank" class="underline" href="">Voir un exemple de fichier products.xlsx à importer (l'ordre des colonnes n'est qu'à titre indicatif)</a>
+      </div>
+    </div>
+    
+</div>
+<hr>
+ <button type="submit">Importer</button>
+
+</div>
+</div>
+ {{ form_end(form) }}
+{% endblock %}

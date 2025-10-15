@@ -1,0 +1,30 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}InventaireItem{% endblock %}
+
+{% block body %}
+    <h1>InventaireItem</h1>
+
+    <table class="table">
+        <tbody>
+            <tr>
+                <th>Id</th>
+                <td>{{ inventaire_item.id }}</td>
+            </tr>
+            <tr>
+                <th>QuantiteTheorique</th>
+                <td>{{ inventaire_item.quantiteTheorique }}</td>
+            </tr>
+            <tr>
+                <th>QuantiteReelle</th>
+                <td>{{ inventaire_item.quantiteReelle }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_inventaire_item_index') }}">back to list</a>
+
+    <a href="{{ path('app_inventaire_item_edit', {'id': inventaire_item.id}) }}">edit</a>
+
+    {{ include('inventaire_item/_delete_form.html.twig') }}
+{% endblock %}

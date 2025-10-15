@@ -1,0 +1,207 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Inventaire #{{ inventaire.id }}{% endblock %}
+
+{% block body %}
+<h1 class="mb-4">📋 Détail de l’inventaire</h1>
+
+<table class="table table-bordered">
+    <tbody>
+        <tr>
+            <th style="width: 200px;">ID</th>
+            <td>{{ inventaire.id }}</td>
+        </tr>
+        <tr>
+            <th>Date de début</th>
+            <td>{{ inventaire.dateDebut ? inventaire.dateDebut|date('d/m/Y H:i') : '-' }}</td>
+        </tr>
+        <tr>
+            <th>Date de fin</th>
+            <td>{{ inventaire.dateFin ? inventaire.dateFin|date('d/m/Y H:i') : '-' }}</td>
+        </tr>
+        <tr>
+            <th>Statut</th>
+            <td>
+                {% if inventaire.statut == 'en_cours' %}
+                    <span class="badge bg-warning text-dark">En cours</span>
+                {% elseif inventaire.statut == 'validé' %}
+                    <span class="badge bg-success">Validé</span>
+                {% elseif inventaire.statut == 'appliqué' %}
+                    <span class="badge bg-success">Cloturé et Appliqué</span>
+                {% elseif inventaire.statut == 'terminé' %}
+                    <span class="badge bg-info text-dark">Terminé</span>
+                {% elseif inventaire.statut == 'annulé' %}
+                    <span class="badge bg-danger">Annulé</span>
+                {% else %}
+                    <span class="badge bg-secondary">Inconnu</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>Appliqué au stock</th>
+            <td>
+                {% if inventaire.applique %}
+                    ✅ Oui
+                    {% if inventaire.appliquePar %}
+                        (par <strong>{{ inventaire.appliquePar.nomComplet }}</strong>)
+                    {% endif %}
+                {% else %}
+                    ❌ Non
+                {% endif %}
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="mt-4">
+    <a href="{{ path('app_inventaire_index') }}" class="btn btn-secondary">⬅️ Retour à la liste</a>
+    <a href="{{ path('app_inventaire_edit', {'id': inventaire.id}) }}" class="btn btn-primary">✏️ Modifier</a>
+    {{ include('inventaire/_delete_form.html.twig') }}
+</div>
+
+<hr>
+
+{# Zone de validation / application #}
+{% if inventaire.statut == 'en_cours' %}
+    <form action="{{ path('inventaire_valider', { id: inventaire.id }) }}" method="post"
+          onsubmit="return confirm('Confirmer la validation de cet inventaire ?');">
+        <button class="btn btn-success mt-3">✅ Valider l’inventaire</button>
+    </form>
+
+{% elseif inventaire.statut == 'validé' and not inventaire.applique %}
+ 
+    <form action="{{ path('app_inventaire_appliquer', { id: inventaire.id }) }}" method="post"
+          onsubmit="return confirm('Appliquer cet inventaire au stock ? Cette action est irréversible.');">
+        <button class="btn btn-success mt-2">📦 Appliquer les quantités au stock</button>
+    </form>
+
+{% elseif inventaire.applique %}
+    <div class="alert alert-success mt-3">
+        ✅ Cet inventaire a été appliqué au stock
+        {% if inventaire.appliquePar %}
+            par <strong>{{ inventaire.appliquePar.nomComplet }}</strong>
+        {% endif %}.
+    </div>
+
+{% elseif inventaire.statut == 'terminé' %}
+    <div class="alert alert-info mt-3">
+        🕓 Cet inventaire est terminé mais pas encore validé.
+    </div>
+
+{% elseif inventaire.statut == 'annulé' %}
+    <div class="alert alert-danger mt-3">
+        ❌ Cet inventaire a été annulé.
+    </div>
+{% endif %}
+
+<hr>
+
+{# Liste des articles avec stock actuel et différence #}
+{% if inventaire.inventaireItems is defined and inventaire.inventaireItems|length > 0 %}
+    <h3 class="mt-4">📦 Articles de l’inventaire</h3>
+
+    <table class="table table-striped mt-3 align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Code-barres</th>
+                <th>Désignation</th>
+                <th>Qté théorique</th>
+                <th>Qté réelle</th>
+                <th>Stock actuel</th>
+                <th>Différence (R - T)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in inventaire.inventaireItems %}
+                {% set diff = item.quantiteReelle - item.quantiteTheorique %}
+                <tr>
+                    <td>{{ item.produit.codeBarre }}</td>
+                    <td>{{ item.produit.nom }}</td>
+                    <td>{{ item.quantiteTheorique }}</td>
+                    <td>
+                        {% if item.quantiteReelle > item.quantiteTheorique %}
+                            <span class="text-success">{{ item.quantiteReelle }}</span>
+                        {% elseif item.quantiteReelle < item.quantiteTheorique %}
+                            <span class="text-danger">{{ item.quantiteReelle }}</span>
+                        {% else %}
+                            <span class="text-muted">{{ item.quantiteReelle }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.produit.stockActuel }}</td>
+                    <td>
+                        {% if diff > 0 %}
+                            <span class="text-success">+{{ diff }}</span>
+                        {% elseif diff < 0 %}
+                            <span class="text-danger">{{ diff }}</span>
+                        {% else %}
+                            <span class="text-muted">0</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <div class="alert alert-warning mt-3">
+        ⚠️ Aucun article n’est encore associé à cet inventaire.
+    </div>
+{% endif %}
+
+
+<h2>📜 Historique des actions</h2>
+
+{% if inventaire.inventaireHistoriques|length > 0 %}
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Utilisateur</th>
+            <th>Action</th>
+            <th>Message</th>
+            <th>Date/Heure</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for h in inventaire.inventaireHistoriques %}
+            <tr>
+                <td>{{ h.utilisateur.nomComplet }}</td>
+                <td>{{ h.action|capitalize }}</td>
+                <td>{{ h.message }}</td>
+                <td>{{ h.dateAction|date('d/m/Y H:i') }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>Aucune action enregistrée pour cet inventaire.</p>
+{% endif %}
+
+{# --------------------- TOAST FLASH --------------------- #}
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 11">
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="toast align-items-center text-bg-{{ label }} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        {{ message }}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        {% endfor %}
+    {% endfor %}
+</div>
+
+
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const toastElList = [].slice.call(document.querySelectorAll('.toast'))
+    toastElList.forEach(toastEl => {
+        new bootstrap.Toast(toastEl, { delay: 4000 }).show()
+    })
+})
+</script>
+{% endblock %}

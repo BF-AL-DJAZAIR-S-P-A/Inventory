@@ -1,0 +1,288 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Scan Inventaire{% endblock %}
+
+{% block body %}
+<br><br><br><br>
+<h1>Inventaire {{ inventaire.nom }} - Entrepôt : {{ inventaire.entrepot.nom }}</h1>
+
+{% if not inventaire.applique %}
+    <p>📷 Code détecté :
+        <input type="text" id="last-scanned" readonly style="width:250px;" placeholder="Aucun" />
+    </p>
+
+    <p>✏️ Saisir un code manuellement :
+        <input type="text" id="manual-code" placeholder="Entrer un code-barres" style="width:250px;" />
+        <button id="manual-submit" style="padding:6px 12px; background:#007bff; color:white; border:none; border-radius:6px; cursor:pointer;">
+            OK
+        </button>
+    </p>
+
+    <div id="scanner-wrapper"
+        style="position:relative; width:90%; max-width:600px; margin:auto; border:1px solid #ccc; border-radius:10px; overflow:hidden; height:360px;">
+        <video id="scanner-container" autoplay muted playsinline
+            style="width:100%; height:100%; object-fit:cover; border-radius:10px;"></video>
+
+        <div id="scan-frame"
+            style="position:absolute; top:50%; left:50%; width:85%; height:40%;
+                   transform:translate(-50%, -50%); pointer-events:none; border:2px dashed lime; border-radius:10px;">
+            <div id="scan-laser"></div>
+            <div id="scan-flash"></div>
+        </div>
+    </div>
+{% else %}
+    <p style="color:red; font-weight:bold;">
+        ⚠️ Cet inventaire a déjà été appliqué. Le scanner et la modification des quantités sont désactivés.
+    </p>
+{% endif %}
+
+<table id="produits-table" border="1" style="margin-top:20px; width:100%; text-align:center;">
+    <thead>
+        <tr style="background:#f5f5f5;">
+            <th>Produit</th>
+            <th>Quantité Théorique</th>
+            <th>Quantité Réelle</th>
+            <th>Écart</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for item in inventaire.inventaireItems %}
+        <tr data-code-article="{{ item.produit.codeArticle }}" data-code-barre="{{ item.produit.codeBarre }}">
+            <td>{{ item.produit.nom }}</td>
+            <td class="quantite-theorique">{{ item.quantiteTheorique }}</td>
+            <td>
+                {% if not inventaire.applique %}
+                    <input type="number" class="quantite-reelle"
+                           data-code-article="{{ item.produit.codeArticle }}"
+                           data-code-barre="{{ item.produit.codeBarre }}"
+                           value="{{ item.quantiteReelle }}" min="0"
+                           style="width:80px; text-align:center;">
+                {% else %}
+                    {{ item.quantiteReelle }}
+                {% endif %}
+            </td>
+            <td class="ecart">{{ item.quantiteReelle - item.quantiteTheorique }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+{% if not inventaire.applique %}
+<div style="text-align:center; margin-top:20px;">
+    <form method="post" action="{{ path('inventaire_valider', { id: inventaire.id }) }}">
+        <button type="submit" class="btn btn-success" style="padding:10px 25px; font-size:16px; border-radius:10px;">
+            ✅ Valider l'inventaire
+        </button>
+    </form>
+</div>
+{% endif %}
+
+<audio id="scan-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+    const inventaireApplique = {{ inventaire.applique ? 'true' : 'false'|raw }};
+    if (inventaireApplique) return;
+
+    const video = document.getElementById('scanner-container');
+    const lastScanned = document.getElementById('last-scanned');
+    const manualInput = document.getElementById('manual-code');
+    const manualBtn = document.getElementById('manual-submit');
+    const scanSound = document.getElementById('scan-sound');
+    const laser = document.getElementById('scan-laser');
+    const flash = document.getElementById('scan-flash');
+    const tableBody = document.querySelector('#produits-table tbody');
+
+    let lastCode = null;
+    let lastScanTime = 0;
+    const SCAN_DELAY = 3000;
+
+    function updateRow(row, increment = 1, skipFetch = false) {
+        const theo = parseInt(row.querySelector('.quantite-theorique').textContent);
+        const input = row.querySelector('.quantite-reelle');
+        let current = parseInt(input.value || 0);
+        let updated = increment > 0 ? current + increment : current;
+        input.value = updated;
+        row.querySelector('.ecart').textContent = updated - theo;
+
+        row.style.backgroundColor = "#c6ffc6";
+        setTimeout(() => row.style.backgroundColor = "", 600);
+
+        scanSound.currentTime = 0;
+        scanSound.play().catch(() => {});
+
+        if (skipFetch) return;
+
+        fetch('{{ path("inventaire_update_quantite", {"id": inventaire.id}) }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+            body: new URLSearchParams({ 
+                codeArticle: row.dataset.codeArticle, 
+                codeBarre: row.dataset.codeBarre, 
+                quantite: updated,
+                entrepot: "{{ inventaire.entrepot.id }}"
+            })
+        })
+        .then(r => r.json())
+        .then(data => { if (!data.success) alert(data.error || "Erreur de mise à jour"); })
+        .catch(err => console.error(err));
+    }
+
+    async function handleCode(rawCode) {
+        if (!rawCode) return;
+        const code = rawCode.replace(/\s+/g, '').trim();
+        if (!code) return;
+
+        const now = Date.now();
+        if (code === lastCode && now - lastScanTime < SCAN_DELAY) return;
+        lastCode = code;
+        lastScanTime = now;
+        lastScanned.value = code;
+
+        laser.style.background = "linear-gradient(90deg, transparent, lime, transparent)";
+        flash.style.opacity = 1;
+        setTimeout(() => flash.style.opacity = 0, 250);
+
+        let row = Array.from(tableBody.querySelectorAll('tr')).find(r =>
+            [r.dataset.codeArticle, r.dataset.codeBarre].includes(code)
+        );
+
+        if (row) {
+            updateRow(row, 1);
+        } else {
+            const res = await fetch('{{ path("inventaire_scan", {"id": inventaire.id}) }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+                body: new URLSearchParams({ codeArticle: code, entrepot: "{{ inventaire.entrepot.id }}" })
+            });
+            const data = await res.json();
+            if (data && data.produit) {
+                const newRow = document.createElement('tr');
+                newRow.dataset.codeArticle = data.codeArticle;
+                newRow.dataset.codeBarre = data.codeBarre;
+                newRow.innerHTML = `
+                    <td>${data.produit}</td>
+                    <td class="quantite-theorique">${data.quantiteTheorique}</td>
+                    <td>
+                        <input type="number" class="quantite-reelle" value="${data.quantiteReelle}" min="0"
+                               style="width:80px; text-align:center;">
+                    </td>
+                    <td class="ecart">${data.quantiteReelle - data.quantiteTheorique}</td>
+                `;
+                tableBody.appendChild(newRow);
+                attachInputListener(newRow.querySelector('.quantite-reelle'));
+                updateRow(newRow, 0, true);
+                
+            } else {
+                alert('Produit non trouvé ou hors entrepôt');
+            }
+        }
+    }
+
+    function attachInputListener(input) {
+        input.addEventListener('change', () => {
+            const row = input.closest('tr');
+            const quantite = parseInt(input.value || 0);
+            const theo = parseInt(row.querySelector('.quantite-theorique').textContent);
+            row.querySelector('.ecart').textContent = quantite - theo;
+
+            fetch('{{ path("inventaire_update_quantite", {"id": inventaire.id}) }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+                body: new URLSearchParams({ 
+                    codeArticle: row.dataset.codeArticle, 
+                    codeBarre: row.dataset.codeBarre, 
+                    quantite: quantite,
+                    entrepot: "{{ inventaire.entrepot.id }}"
+                })
+            })
+            .then(r => r.json())
+            .then(data => { if (!data.success) alert(data.error || "Erreur de mise à jour"); })
+            .catch(err => console.error(err));
+        });
+    }
+
+    document.querySelectorAll('.quantite-reelle').forEach(input => attachInputListener(input));
+
+    manualBtn.addEventListener('click', () => {
+        const v = manualInput.value.trim();
+        if (v) { handleCode(v); manualInput.value = ''; }
+    });
+    manualInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); manualBtn.click(); }
+    });
+
+    // ---- Scanner mobile ----
+    try {
+        const hints = new Map();
+        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, Object.values(ZXing.BarcodeFormat));
+        const codeReader = new ZXing.BrowserMultiFormatReader(hints);
+        const devices = await codeReader.listVideoInputDevices();
+        if (!devices.length) { alert("Aucune caméra détectée."); return; }
+
+        let selectedDeviceId = devices[0].deviceId;
+        for (let d of devices) {
+            if (/back|rear|environment/i.test(d.label)) selectedDeviceId = d.deviceId;
+        }
+
+        const constraints = { video: { deviceId: selectedDeviceId, width:{ideal:1280}, height:{ideal:720}, facingMode:"environment" } };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+
+        const track = stream.getVideoTracks()[0];
+        if (track.getCapabilities) {
+            const caps = track.getCapabilities();
+            const adv = [];
+            if (caps.focusMode && caps.focusMode.includes("continuous")) adv.push({ focusMode: "continuous" });
+            if (caps.zoom) adv.push({ zoom: Math.min(caps.zoom.max, 2) });
+            if (adv.length) track.applyConstraints({ advanced: adv });
+        }
+
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        function enhanceFrame() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            const frame = ctx.getImageData(0,0,canvas.width,canvas.height);
+            for(let i=0;i<frame.data.length;i+=4){
+                frame.data[i]*=1.2; frame.data[i+1]*=1.2; frame.data[i+2]*=1.2;
+            }
+            ctx.putImageData(frame,0,0);
+            requestAnimationFrame(enhanceFrame);
+        }
+        video.addEventListener("play", enhanceFrame);
+
+        codeReader.decodeFromVideoDevice(selectedDeviceId, video, (result, err)=>{
+            if(result) handleCode(result.getText());
+        });
+
+    } catch(e){
+        console.error(e);
+        alert("Impossible d'accéder à la caméra. Vérifie permissions et HTTPS.");
+    }
+});
+</script>
+
+<style>
+#scan-laser {
+    position: absolute; top:0; left:0; width:100%; height:3px;
+    background: linear-gradient(90deg, transparent, rgba(255,0,0,0.8), transparent);
+    box-shadow: 0 0 10px rgba(255,0,0,0.7);
+    border-radius: 4px;
+    animation: laser-move 1.5s linear infinite;
+}
+#scan-flash {
+    position:absolute; top:0; left:0; width:100%; height:100%;
+    background: rgba(255,255,255,0.3); opacity:0; pointer-events:none;
+    transition: opacity 0.15s;
+}
+@keyframes laser-move { 0%{top:0;opacity:0.6} 50%{top:calc(100%-3px);opacity:1} 100%{top:0;opacity:0.6} }
+@media (max-width:768px){
+    #scanner-wrapper{height:260px !important;}
+    #scan-frame{width:90%;height:45%;}
+    table{font-size:12px;}
+}
+</style>
+{% endblock %}

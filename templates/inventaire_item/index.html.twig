@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}InventaireItem index{% endblock %}
+
+{% block body %}
+<br><br><br><br>
+    <h1>InventaireItem index</h1>
+
+    <table class="table">
+    <thead>
+        <tr>
+            <th>Id</th>
+            <th>Produit</th>
+            <th>Quantité Théorique</th>
+            <th>Quantité Réelle</th>
+            <th>Inventaire</th>
+            <th>Actions</th>
+         
+        </tr>
+    </thead>
+    <tbody>
+    {% for inventaire_item in inventaire_items %}
+        <tr>
+            <td>{{ inventaire_item.id }}</td>
+            <td>{{ inventaire_item.produit ? inventaire_item.produit.nom : 'Non défini' }}</td>
+            <td>{{ inventaire_item.quantiteTheorique }}</td>
+            <td>{{ inventaire_item.quantiteReelle }}</td>
+            <td>{{ inventaire_item.inventaire ? inventaire_item.inventaire.id : 'Non défini' }}</td>
+            <td>
+                <a href="{{ path('app_inventaire_item_show', {'id': inventaire_item.id}) }}">Afficher</a>
+                <a href="{{ path('app_inventaire_item_edit', {'id': inventaire_item.id}) }}">Modifier</a>
+            </td>
+            
+        </tr>
+    {% else %}
+        <tr>
+            <td colspan="6">Aucun enregistrement trouvé</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<a href="{{ path('app_inventaire_item_new') }}">Créer un nouvel item</a>
+{% endblock %}

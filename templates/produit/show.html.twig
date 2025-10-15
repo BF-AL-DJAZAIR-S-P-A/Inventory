@@ -1,0 +1,79 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Produit{% endblock %}
+
+{% block body %}
+    <h1>Produit</h1>
+
+    <table class="table">
+        <tbody>
+            <tr>
+                <th>Id</th>
+                <td>{{ produit.id }}</td>
+            </tr>
+            <tr>
+                <th>CodeArticle</th>
+                <td>
+                {{ produit.codeArticle }}
+                
+                    {% if produit.id and produit.codeArticle %}
+            
+            <img src="{{ path('produit_barcode', {id: produit.id}) }}" 
+                alt="Code-barres du produit {{ produit.nom }}" 
+                class="border p-2 mt-2">
+{% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>CodeBarre</th>
+                <td>{{ produit.codeBarre }}</td>
+            </tr>
+            <tr>
+                <th>Nom</th>
+                <td>{{ produit.nom }}</td>
+            </tr>
+            <tr>
+                <th>Description</th>
+                <td>{{ produit.description }}</td>
+            </tr>
+            <tr>
+                <th>Unite</th>
+                <td>{{ produit.unite }}</td>
+            </tr>
+            <tr>
+                <th>PrixAchat</th>
+                <td>{{ produit.prixAchat }}</td>
+            </tr>
+            <tr>
+                <th>StockActuel</th>
+                <td>{{ produit.stockActuel }}</td>
+            </tr>
+            <tr>
+                <th>StockMinimum</th>
+                <td>{{ produit.stockMinimum }}</td>
+            </tr>
+            <tr>
+                <th>DatePeremption</th>
+                <td>{{ produit.datePeremption ? produit.datePeremption|date('Y-m-d') : '' }}</td>
+            </tr>
+            <tr>
+                <th>Actif</th>
+                <td>{{ produit.actif ? 'Yes' : 'No' }}</td>
+            </tr>
+            <tr>
+                <th>CreatedAt</th>
+                <td>{{ produit.createdAt ? produit.createdAt|date('Y-m-d H:i:s') : '' }}</td>
+            </tr>
+            <tr>
+                <th>UpdatedAt</th>
+                <td>{{ produit.updatedAt ? produit.updatedAt|date('Y-m-d H:i:s') : '' }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_produit_index') }}">back to list</a>
+
+    <a href="{{ path('app_produit_edit', {'id': produit.id}) }}">edit</a>
+
+    {{ include('produit/_delete_form.html.twig') }}
+{% endblock %}

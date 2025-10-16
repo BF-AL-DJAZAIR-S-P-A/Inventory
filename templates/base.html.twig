@@ -106,6 +106,7 @@ Spécificité : (0,1,2)
     </head>
     <body>
      {# Navbar fixe en haut #}
+     {% if app.user %}
     <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
       <div class="container-fluid">
         <a class="navbar-brand" href="{{ path('app_home') }}"><b>BF AL DJAZAIR</b></a>
@@ -117,30 +118,42 @@ Spécificité : (0,1,2)
             <li class="nav-item">
               <a class="nav-link active" href="{{ path('app_home') }}">Accueil</a>
             </li>
-            <li class="nav-item dropdown"> <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false">Gestion de stock</a>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{{path('app_produit_index')}}">Produits</a></li>
-                    <li><a class="dropdown-item" href="{{path('app_inventaire_index')}}">Inventaires</a></li>
-                    <li><a class="dropdown-item" href="#">Documents de stock</a></li>
-                    <li><a class="dropdown-item" href="#">Entrepôts</a></li>
-                    <li class="divider"></li>
-                    <li><a class="dropdown-item" href="#">
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false">Gestion de stock</a>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{{ path('app_produit_index') }}">Produits</a></li>
+                <li><a class="dropdown-item" href="{{ path('app_inventaire_index') }}">Inventaires</a></li>
+                <li><a class="dropdown-item" href="#">Documents de stock</a></li>
+                <li><a class="dropdown-item" href="#">Entrepôts</a></li>
+                <li class="divider"></li>
+                <li>
+                  <a class="dropdown-item" href="#">
                     <div class="d-inline-flex align-items-center justify-content-center text-white rounded-circle" style="width:16px; height:16px; background:black;">
                       <i class="fa-solid fa-plus" style="font-size: 12px;"></i>
-                    </div> Entrée</a></li>
-                    <li><a class="dropdown-item" href="#">
-                    <div class="d-inline-flex align-items-center justify-content-center  text-white rounded-circle" style="width:16px; height:16px; background:black;">
-                    <i class="fa-solid  fa-minus" style="font-size: 12px;"></i>
-                    </div>
-                     Sortie</a></li>
-                </ul>
+                    </div> Entrée
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="#">
+                    <div class="d-inline-flex align-items-center justify-content-center text-white rounded-circle" style="width:16px; height:16px; background:black;">
+                      <i class="fa-solid fa-minus" style="font-size: 12px;"></i>
+                    </div> Sortie
+                  </a>
+                </li>
+              </ul>
             </li>
-          
           </ul>
+
           <ul class="navbar-nav ms-auto">
-            <li class="nav-item"><a class="nav-link" href="{{path('app_user_index')}}">Utilisateurs</a></li>
-               <li class="nav-item dropdown">
-                  {% if app.user %}
+            {# 🔒 Lien “Utilisateurs” visible seulement pour les admins #}
+            {% if 'ROLE_ADMIN' in app.user.roles %}
+              <li class="nav-item">
+                <a class="nav-link" href="{{ path('app_user_index') }}">Utilisateurs</a>
+              </li>
+            {% endif %}
+
+            <li class="nav-item dropdown">
+             {% if app.user %}
                       <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false">
                           {{ app.user.email }}
                       </a>
@@ -151,12 +164,13 @@ Spécificité : (0,1,2)
                   {% else %}
                       <a class="nav-link" href="{{ path('app_login') }}">Connexion</a>
                   {% endif %}
-              </li>
             </li>
           </ul>
         </div>
       </div>
     </nav>
+{% endif %}
+
       {# Contenu principal #}
    
         {% block body %}{% endblock %}

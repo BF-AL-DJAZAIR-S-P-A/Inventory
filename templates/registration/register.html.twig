@@ -1,23 +1,112 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Register{% endblock %}
+{% block title %}Inscription | BF AL DJAZAIR{% endblock %}
 
 {% block body %}
-    {% for flash_error in app.flashes('verify_email_error') %}
-        <div class="alert alert-danger" role="alert">{{ flash_error }}</div>
-    {% endfor %}
+<style>
+    body {
+        background: linear-gradient(to right, #fff, #fff);
+    }
 
-    <h1>Register</h1>
+    .register-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding-top: 80px; /* pour la navbar */
+        padding-bottom: 60px; /* pour le footer */
+    }
 
-    {{ form_errors(registrationForm) }}
+    .register-logo {
+        width: auto;
+        height: auto;
+        margin-bottom: 25px;
+    }
 
-    {{ form_start(registrationForm) }}
-        {{ form_row(registrationForm.email) }}
-        {{ form_row(registrationForm.plainPassword, {
-            label: 'Password'
-        }) }}
-        {{ form_row(registrationForm.agreeTerms) }}
+    .register-card {
+        width: 100%;
+        max-width: 450px;
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        background: white;
+    }
 
-        <button type="submit" class="btn">Register</button>
-    {{ form_end(registrationForm) }}
+    .register-card .card-header {
+        background: #212529;
+        color: white;
+        font-weight: bold;
+        text-align: center;
+        border-top-left-radius: 15px;
+        border-top-right-radius: 15px;
+    }
+
+    .btn-register {
+        background-color: #212529;
+        border: none;
+        transition: all 0.3s ease;
+    }
+
+    .btn-register:hover {
+        background-color: #1e2124ff;
+        transform: scale(1.02);
+    }
+
+    .form-label {
+        font-weight: 600;
+    }
+
+    .footer {
+        position: relative;
+    }
+</style>
+
+<div class="register-container">
+    <!-- Logo centré au-dessus -->
+    <img src="{{ asset('logo.png') }}" alt="Logo BF ALDJAZAIR" class="register-logo">
+
+    <div class="card register-card">
+        <div class="card-header">
+            <i class="fa-solid fa-user-plus"></i> Créer un compte
+        </div>
+        <div class="card-body p-4">
+            {% for flash_error in app.flashes('verify_email_error') %}
+                <div class="alert alert-danger" role="alert">{{ flash_error }}</div>
+            {% endfor %}
+
+            {{ form_start(registrationForm) }}
+                <div class="mb-3">
+                    {{ form_label(registrationForm.email, 'Adresse e-mail', {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(registrationForm.email, {'attr': {'class': 'form-control', 'placeholder': 'exemple@bfaldjazair.com'}}) }}
+                    {{ form_errors(registrationForm.email) }}
+                </div>
+
+                <div class="mb-3">
+                    {{ form_label(registrationForm.plainPassword, 'Mot de passe', {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(registrationForm.plainPassword, {'attr': {'class': 'form-control'}}) }}
+                    {{ form_errors(registrationForm.plainPassword) }}
+                </div>
+
+                <div class="form-check mb-3">
+                    {{ form_widget(registrationForm.agreeTerms, {'attr': {'class': 'form-check-input'}}) }}
+                    {{ form_label(registrationForm.agreeTerms, "J'accepte les conditions d'utilisation", {'label_attr': {'class': 'form-check-label'}}) }}
+                    {{ form_errors(registrationForm.agreeTerms) }}
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-register text-white fw-bold">
+                        <i class="fa-solid fa-user-plus"></i> S’inscrire
+                    </button>
+                </div>
+            {{ form_end(registrationForm) }}
+
+            <div class="text-center mt-3">
+                <a href="{{ path('app_login') }}" class="text-decoration-none" style="color:#2480c2;">
+                    <i class="fa-solid fa-arrow-left"></i> Retour à la connexion
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
